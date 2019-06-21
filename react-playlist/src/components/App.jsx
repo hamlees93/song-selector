@@ -4,6 +4,9 @@ Stretch:
   2) Save the current video to local storage in case of refresh
   3) Pull image from pexel and rotate every 2 mins
   4) Come up with a different alert if the channel was not correct
+  5) Prevent the same video
+  6) Save songs to database using channel, so you can re-create playlists
+  7) Only make them enter channel once - like Kahoot
 */
 
 import React, { Component } from "react";
@@ -21,9 +24,9 @@ import reactPlayerStyle from "./../styles/reactPlayerStyle";
 class App extends Component {
   state = {
     // home
-    endpoint: REACT_APP_HOME_PORT,
+    endpoint: process.env.REACT_APP_HOME_PORT,
     // coder
-    // endpoint: REACT_APP_CODER_PORT,
+    // endpoint: process.env.REACT_APP_CODER_PORT,
     videos: [],
     url: null,
     titles: [],
@@ -38,6 +41,7 @@ class App extends Component {
     socket.emit("channel-join", channelName);
 
     socket.on("new url", async response => {
+      console.log(response);
       let tempVids = videos;
       tempVids.push(response);
       let videoTitle = titles;
@@ -70,8 +74,10 @@ class App extends Component {
 
     try {
       const response = await axios.get(
+        // `https://www.googleapis.com/youtube/v3/search?part=snipper&q=disco&type=video&key=${ytAPI}`
         `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vidID}&key=${ytAPI}`
       );
+      console.log(response.data);
       return response.data.items[0].snippet.localized.title;
     } catch (err) {
       console.log(err);

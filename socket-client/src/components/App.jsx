@@ -1,27 +1,42 @@
 import React, { Component } from "react";
 import socketIOClient from "socket.io-client";
+import searchYoutube from "youtube-api-v3-search";
+import listStyle from "./../styles/listStyle";
 
 class App extends Component {
   state = {
     // home
-    endpoint: REACT_APP_HOME_PORT,
+    endpoint: process.env.REACT_APP_HOME_PORT,
     // coder
-    // endpoint: REACT_APP_CODER_PORT,
-    url: "",
-    channel: ""
+    // endpoint: process.env.REACT_APP_CODER_PORT,
+    channel: this.props.channel,
+    searchTerm: "",
+    searchResults: []
   };
 
-  handleSubmit = event => {
+  handleSubmit = async event => {
     event.preventDefault();
-    const { endpoint, url, channel } = this.state;
+    const { searchTerm } = this.state;
 
-    const socket = socketIOClient(endpoint);
-    socket.emit("send url", url, channel);
+    const options = {
+      q: searchTerm,
+      part: "snippet",
+      type: "video",
+      maxResults: 10
+    };
+
+    const response = await searchYoutube(
+      process.env.REACT_APP_YOUTUBE_API,
+      options
+    );
+
+    this.setState({
+      searchResults: response.items
+    });
   };
 
-  handleUrlChange = event => this.setState({ url: event.target.value });
-
-  handleChannelChange = event => this.setState({ channel: event.target.value });
+  handleSearchTermChange = event =>
+    this.setState({ searchTerm: event.target.value });
 
   componentDidMount = () => {
     const { endpoint } = this.state;
@@ -31,29 +46,60 @@ class App extends Component {
     socket.on("send url", response => {
       if (response) {
         alert("Song successfully added to list!");
-        this.setState({ url: "" });
+        this.setState({ searchTerm: "" });
       }
     });
   };
 
+  selectVideo = vidID => {
+    const { endpoint, channel } = this.state;
+    const url = `https://www.youtube.com/watch?v=${vidID}`;
+    this.setState({
+      searchResults: []
+    });
+    const socket = socketIOClient(endpoint);
+    socket.emit("send url", url, channel);
+  };
+
   render() {
+    const { searchResults, searchTerm } = this.state;
     return (
-      <div style={{ textAlign: "center" }}>
-        <form onSubmit={this.handleSubmit}>
-          <label>Enter URL</label>
-          <input
-            type="text"
-            value={this.state.url}
-            onChange={this.handleUrlChange}
-          />
-          <label>Enter Channel</label>
-          <input
-            type="text"
-            value={this.state.channel}
-            onChange={this.handleChannelChange}
-          />
-          <input type="submit" value="Add Video" />
-        </form>
+      <div>
+        <div style={{ textAlign: "center" }}>
+          <form onSubmit={this.handleSubmit}>
+            <label>Enter Search Term</label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={this.handleSearchTermChange}
+            />
+            <input type="submit" value="Search" />
+          </form>
+        </div>
+        <div>
+          {searchResults.length > 0 ? (
+            <div>
+              <h4>Please select one of the following</h4>
+
+              {/* Eventualy have as ant D table */}
+              <ul>
+                {searchResults.map(result => (
+                  <li key={result.snippet.title} style={listStyle}>
+                    <img
+                      alt={`thumbnail of ${result.snippet.title}`}
+                      src={result.snippet.thumbnails.default.url}
+                    />
+                    <button onClick={() => this.selectVideo(result.id.videoId)}>
+                      {result.snippet.title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <div />
+          )}
+        </div>
       </div>
     );
   }
