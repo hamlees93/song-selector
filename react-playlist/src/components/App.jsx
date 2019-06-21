@@ -21,9 +21,9 @@ import reactPlayerStyle from "./../styles/reactPlayerStyle";
 class App extends Component {
   state = {
     // home
-    endpoint: "192.168.1.21:3002",
+    endpoint: REACT_APP_HOME_PORT,
     // coder
-    // endpoint: "10.0.74.136:3002",
+    // endpoint: REACT_APP_CODER_PORT,
     videos: [],
     url: null,
     titles: [],
